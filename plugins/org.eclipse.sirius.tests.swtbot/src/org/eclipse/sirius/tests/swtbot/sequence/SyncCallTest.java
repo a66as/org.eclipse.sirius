@@ -79,6 +79,16 @@ public class SyncCallTest extends AbstractDefaultModelSequenceTests {
     private Rectangle instanceRoleBBounds;
 
     private Rectangle instanceRoleCBounds;
+    
+    private long startTime = 0;
+    
+    private void trace(String step) {
+        if (startTime == 0) {
+            startTime = System.currentTimeMillis();
+        }
+        System.out.println("Step " + step + ": " + (System.currentTimeMillis() - startTime));
+        System.out.flush();
+    }
 
     /**
      * {@inheritDoc}
@@ -114,31 +124,38 @@ public class SyncCallTest extends AbstractDefaultModelSequenceTests {
     public void test_SyncCall_Resize_Zoom() throws Exception {
         try {
             ZoomLevel zoom50 = ZoomLevel.ZOOM_50;
+            trace("0");
             editor.zoom(ZoomLevel.ZOOM_50);
             editor.restore();
+            trace("1");
 
             // Click on the diagram to unfocus the created element
             editor.click(LayoutConstants.LIFELINES_START_X - 10, LayoutConstants.LIFELINES_START_Y - 10);
             // Arrange All
             arrangeAll();
+            trace("2");
 
             // Calculate the X position of the center of lifelines A and B
             int lifelineAPosition = getScreenPosition(LIFELINE_A).x + getScreenSize(LIFELINE_A).width / 2;
             int lifelineBPosition = getScreenPosition(LIFELINE_B).x + getScreenSize(LIFELINE_B).width / 2;
             int lifelineCPosition = getScreenPosition(LIFELINE_C).x + getScreenSize(LIFELINE_C).width / 2;
+            trace("3");
 
             // Creation of a Sync Call
             editor.activateTool("Sync Call");
             editor.click(lifelineAPosition, 75);
             editor.click(lifelineBPosition, 75);
+            trace("4");
             editor.activateTool("Sync Call");
             editor.click(lifelineBPosition, 80);
             editor.click(lifelineCPosition, 80);
+            trace("5");
 
             // Creation of a Sync Call
             editor.activateTool("Sync Call");
             editor.click(lifelineAPosition, 150);
             editor.click(lifelineBPosition, 150);
+            trace("6");
 
             Point firstExecutionScreenPosition = getExecutionScreenPosition(LIFELINE_B, 0);
             Dimension firstExecutionDimension = getExecutionScreenDimension(LIFELINE_B, 0);
@@ -146,14 +163,19 @@ public class SyncCallTest extends AbstractDefaultModelSequenceTests {
             Dimension secondExecutionDimension = getExecutionScreenDimension(LIFELINE_C, 0);
             Point thirdExecutionScreenPosition = getExecutionScreenPosition(LIFELINE_B, 1);
             Dimension thirdExecutionDimension = getExecutionScreenDimension(LIFELINE_B, 1);
+            trace("7");
 
             // Select the first message to be able to move it then
             editor.click(getSequenceMessageScreenCenteredPosition(FIRST_MESSAGE_SYNC_CALL));
+            trace("8");
             editor.drag(getSequenceMessageScreenCenteredPosition(FIRST_MESSAGE_SYNC_CALL), getSequenceMessageScreenCenteredPosition(FIRST_MESSAGE_SYNC_CALL).x - 10,
                     getSequenceMessageScreenCenteredPosition(FIRST_MESSAGE_SYNC_CALL).y - 10);
+            trace("9");
 
             validateMessagesOnEdgeOfExecution(zoom50.getAmount());
+            trace("10");
             validateOrdering(12);
+            trace("11");
 
             // Validate execution vertical position
             assertEquals("The beginning of the execution index 0 on lifeline " + LIFELINE_B + " is not at the expected vertical position", firstExecutionScreenPosition.y - 10,
@@ -169,22 +191,28 @@ public class SyncCallTest extends AbstractDefaultModelSequenceTests {
                     getExecutionScreenPosition(LIFELINE_B, 1).y);
             assertEquals("The end of the execution index 1 on lifeline " + LIFELINE_B + " is not at the expected vertical position", thirdExecutionScreenPosition.y + thirdExecutionDimension.height,
                     getExecutionScreenPosition(LIFELINE_B, 1).y + getExecutionScreenDimension(LIFELINE_B, 1).height);
-
+            trace("12");
+            
             firstExecutionScreenPosition = getExecutionScreenPosition(LIFELINE_B, 0);
             firstExecutionDimension = getExecutionScreenDimension(LIFELINE_B, 0);
             secondExecutionScreenPosition = getExecutionScreenPosition(LIFELINE_C, 0);
             secondExecutionDimension = getExecutionScreenDimension(LIFELINE_C, 0);
             thirdExecutionScreenPosition = getExecutionScreenPosition(LIFELINE_B, 1);
             thirdExecutionDimension = getExecutionScreenDimension(LIFELINE_B, 1);
+            trace("13");
 
             // Move down the return message of the second execution of Lifeline
             // B
             editor.click(getSequenceMessageScreenCenteredPosition(getReturnSyncCall(LIFELINE_B, 1)));
+            trace("14");
             editor.drag(getSequenceMessageScreenCenteredPosition(getReturnSyncCall(LIFELINE_B, 1)), getSequenceMessageScreenCenteredPosition(getReturnSyncCall(LIFELINE_B, 1)).x + 50,
                     getSequenceMessageScreenCenteredPosition(getReturnSyncCall(LIFELINE_B, 1)).y + 50);
+            trace("15");
 
             validateMessagesOnEdgeOfExecution(zoom50.getAmount());
+            trace("16");
             validateOrdering(12);
+            trace("17");
 
             // Validate execution vertical position
             assertEquals("The beginning of the execution index 0 on lifeline " + LIFELINE_B + " is not at the expected vertical position", firstExecutionScreenPosition.y,
@@ -195,8 +223,10 @@ public class SyncCallTest extends AbstractDefaultModelSequenceTests {
                     getExecutionScreenPosition(LIFELINE_C, 0).y + getExecutionScreenDimension(LIFELINE_C, 0).height);
             assertEquals("The end of the execution index 0 on lifeline " + LIFELINE_B + " is not at the expected vertical position", firstExecutionScreenPosition.y + firstExecutionDimension.height,
                     getExecutionScreenPosition(LIFELINE_B, 0).y + getExecutionScreenDimension(LIFELINE_B, 0).height);
-
+            trace("18");
+            
             assertExecutionHasValidScreenBounds(LIFELINE_B, 1, new Rectangle(0, thirdExecutionScreenPosition.y, 0, thirdExecutionDimension.height + 50), false);
+            trace("19");
 
             firstExecutionScreenPosition = getExecutionScreenPosition(LIFELINE_B, 0);
             firstExecutionDimension = getExecutionScreenDimension(LIFELINE_B, 0);
@@ -204,14 +234,19 @@ public class SyncCallTest extends AbstractDefaultModelSequenceTests {
             secondExecutionDimension = getExecutionScreenDimension(LIFELINE_C, 0);
             thirdExecutionScreenPosition = getExecutionScreenPosition(LIFELINE_B, 1);
             thirdExecutionDimension = getExecutionScreenDimension(LIFELINE_B, 1);
+            trace("20");
 
             // Move down message m5 of the second execution of Lifeline B
             editor.click(getSequenceMessageScreenCenteredPosition(FIFTH_MESSAGE_SYNC_CALL_ON_LIFELINE_B));
+            trace("21");
             editor.drag(getSequenceMessageScreenCenteredPosition(FIFTH_MESSAGE_SYNC_CALL_ON_LIFELINE_B), getSequenceMessageScreenCenteredPosition(FIFTH_MESSAGE_SYNC_CALL_ON_LIFELINE_B).x + 50,
                     getSequenceMessageScreenCenteredPosition(FIFTH_MESSAGE_SYNC_CALL_ON_LIFELINE_B).y + 50);
+            trace("22");
 
             validateMessagesOnEdgeOfExecution(zoom50.getAmount());
+            trace("23");
             validateOrdering(12);
+            trace("24");
 
             // Validate execution vertical position
             assertEquals("The beginning of the execution index 0 on lifeline " + LIFELINE_B + " is not at the expected vertical position", firstExecutionScreenPosition.y,
@@ -227,21 +262,27 @@ public class SyncCallTest extends AbstractDefaultModelSequenceTests {
                     getExecutionScreenPosition(LIFELINE_B, 1).y);
             assertEquals("The end of the execution index 1 on lifeline " + LIFELINE_B + " is not at the expected vertical position", thirdExecutionScreenPosition.y + thirdExecutionDimension.height,
                     getExecutionScreenPosition(LIFELINE_B, 1).y + getExecutionScreenDimension(LIFELINE_B, 1).height);
-
+            trace("25");
+            
             firstExecutionScreenPosition = getExecutionScreenPosition(LIFELINE_B, 0);
             firstExecutionDimension = getExecutionScreenDimension(LIFELINE_B, 0);
             secondExecutionScreenPosition = getExecutionScreenPosition(LIFELINE_C, 0);
             secondExecutionDimension = getExecutionScreenDimension(LIFELINE_C, 0);
             thirdExecutionScreenPosition = getExecutionScreenPosition(LIFELINE_B, 1);
             thirdExecutionDimension = getExecutionScreenDimension(LIFELINE_B, 1);
+            trace("26");
 
             // Move down the return message of the first execution of Lifeline B
             editor.click(getSequenceMessageScreenCenteredPosition(getReturnSyncCall(LIFELINE_B, 0)));
+            trace("27");
             editor.drag(getSequenceMessageScreenCenteredPosition(getReturnSyncCall(LIFELINE_B, 0)), getSequenceMessageScreenCenteredPosition(getReturnSyncCall(LIFELINE_B, 0)).x + 50,
                     getSequenceMessageScreenCenteredPosition(getReturnSyncCall(LIFELINE_B, 0)).y + 50);
+            trace("28");
 
             validateMessagesOnEdgeOfExecution(zoom50.getAmount());
+            trace("29");
             validateOrdering(12);
+            trace("30");
 
             // Validate execution vertical position
             assertEquals("The beginning of the execution index 0 on lifeline " + LIFELINE_B + " is not at the expected vertical position", firstExecutionScreenPosition.y,
@@ -257,6 +298,7 @@ public class SyncCallTest extends AbstractDefaultModelSequenceTests {
                     getExecutionScreenPosition(LIFELINE_B, 1).y);
             assertEquals("The end of the execution index 1 on lifeline " + LIFELINE_B + " is not at the expected vertical position", thirdExecutionScreenPosition.y + thirdExecutionDimension.height,
                     getExecutionScreenPosition(LIFELINE_B, 1).y + getExecutionScreenDimension(LIFELINE_B, 1).height);
+            trace("31");
 
             firstExecutionScreenPosition = getExecutionScreenPosition(LIFELINE_B, 0);
             firstExecutionDimension = getExecutionScreenDimension(LIFELINE_B, 0);
@@ -264,15 +306,20 @@ public class SyncCallTest extends AbstractDefaultModelSequenceTests {
             secondExecutionDimension = getExecutionScreenDimension(LIFELINE_C, 0);
             thirdExecutionScreenPosition = getExecutionScreenPosition(LIFELINE_B, 1);
             thirdExecutionDimension = getExecutionScreenDimension(LIFELINE_B, 1);
+            trace("32");
 
             // Move down the return message of the first execution of Lifeline C
             int delta = 40;
             editor.click(getSequenceMessageScreenCenteredPosition(getReturnSyncCall(LIFELINE_C, 0)));
+            trace("33");
             editor.drag(getSequenceMessageScreenCenteredPosition(getReturnSyncCall(LIFELINE_C, 0)), getSequenceMessageScreenCenteredPosition(getReturnSyncCall(LIFELINE_C, 0)).x + delta,
                     getSequenceMessageScreenCenteredPosition(getReturnSyncCall(LIFELINE_C, 0)).y + delta);
+            trace("34");
 
             validateMessagesOnEdgeOfExecution(zoom50.getAmount());
+            trace("35");
             validateOrdering(12);
+            trace("36");
 
             // Validate execution vertical position
             assertEquals("The beginning of the execution index 0 on lifeline " + LIFELINE_B + " is not at the expected vertical position", firstExecutionScreenPosition.y,
@@ -288,6 +335,7 @@ public class SyncCallTest extends AbstractDefaultModelSequenceTests {
                     getExecutionScreenPosition(LIFELINE_B, 1).y, 1);
             assertEquals("The end of the execution index 1 on lifeline " + LIFELINE_B + " is not at the expected vertical position", thirdExecutionScreenPosition.y + thirdExecutionDimension.height,
                     getExecutionScreenPosition(LIFELINE_B, 1).y + getExecutionScreenDimension(LIFELINE_B, 1).height, 1);
+            trace("37");
 
             firstExecutionScreenPosition = getExecutionScreenPosition(LIFELINE_B, 0);
             firstExecutionDimension = getExecutionScreenDimension(LIFELINE_B, 0);
@@ -295,14 +343,18 @@ public class SyncCallTest extends AbstractDefaultModelSequenceTests {
             secondExecutionDimension = getExecutionScreenDimension(LIFELINE_C, 0);
             thirdExecutionScreenPosition = getExecutionScreenPosition(LIFELINE_B, 1);
             thirdExecutionDimension = getExecutionScreenDimension(LIFELINE_B, 1);
+            trace("38");
 
             // Move down message m3 of the first execution of Lifeline C
             editor.click(getSequenceMessageScreenCenteredPosition(THIRD_MESSAGE_SYNC_CALL_ON_LIFELINE_C));
             editor.drag(getSequenceMessageScreenCenteredPosition(THIRD_MESSAGE_SYNC_CALL_ON_LIFELINE_C), getSequenceMessageScreenCenteredPosition(THIRD_MESSAGE_SYNC_CALL_ON_LIFELINE_C).x + 50,
                     getSequenceMessageScreenCenteredPosition(THIRD_MESSAGE_SYNC_CALL_ON_LIFELINE_C).y + 50);
+            trace("39");
 
             validateMessagesOnEdgeOfExecution(zoom50.getAmount());
+            trace("40");
             validateOrdering(12);
+            trace("41");
 
             // Validate execution vertical position
             assertEquals("The beginning of the execution index 0 on lifeline " + LIFELINE_B + " is not at the expected vertical position", firstExecutionScreenPosition.y,
@@ -318,6 +370,7 @@ public class SyncCallTest extends AbstractDefaultModelSequenceTests {
                     getExecutionScreenPosition(LIFELINE_B, 1).y);
             assertEquals("The end of the execution index 1 on lifeline " + LIFELINE_B + " is not at the expected vertical position", thirdExecutionScreenPosition.y + thirdExecutionDimension.height,
                     getExecutionScreenPosition(LIFELINE_B, 1).y + getExecutionScreenDimension(LIFELINE_B, 1).height);
+            trace("42");
 
             firstExecutionScreenPosition = getExecutionScreenPosition(LIFELINE_B, 0);
             firstExecutionDimension = getExecutionScreenDimension(LIFELINE_B, 0);
@@ -325,17 +378,22 @@ public class SyncCallTest extends AbstractDefaultModelSequenceTests {
             secondExecutionDimension = getExecutionScreenDimension(LIFELINE_C, 0);
             thirdExecutionScreenPosition = getExecutionScreenPosition(LIFELINE_B, 1);
             thirdExecutionDimension = getExecutionScreenDimension(LIFELINE_B, 1);
-
+            trace("43");
+            
             // Validation of forbidden move
 
             // Validate it is not possible to move up message m1 before the
             // begining of the lifeline
             editor.click(getSequenceMessageScreenCenteredPosition(FIRST_MESSAGE_SYNC_CALL));
+            trace("44");
             editor.drag(getSequenceMessageScreenCenteredPosition(FIRST_MESSAGE_SYNC_CALL), getSequenceMessageScreenCenteredPosition(FIRST_MESSAGE_SYNC_CALL).x - 50,
                     getSequenceMessageScreenCenteredPosition(FIRST_MESSAGE_SYNC_CALL).y - 50);
+            trace("45");
 
             validateMessagesOnEdgeOfExecution(zoom50.getAmount());
+            trace("46");
             validateOrdering(12);
+            trace("47");
 
             // Validate execution vertical position
             assertEquals("The beginning of the execution index 0 on lifeline " + LIFELINE_B + " is not at the expected vertical position", firstExecutionScreenPosition.y,
@@ -351,15 +409,20 @@ public class SyncCallTest extends AbstractDefaultModelSequenceTests {
                     getExecutionScreenPosition(LIFELINE_B, 1).y);
             assertEquals("The end of the execution index 1 on lifeline " + LIFELINE_B + " is not at the expected vertical position", thirdExecutionScreenPosition.y + thirdExecutionDimension.height,
                     getExecutionScreenPosition(LIFELINE_B, 1).y + getExecutionScreenDimension(LIFELINE_B, 1).height);
+            trace("48");
 
             // Validate it is not possible to move down message m3 after the
             // return message of the same execution
             editor.click(getSequenceMessageScreenCenteredPosition(THIRD_MESSAGE_SYNC_CALL_ON_LIFELINE_C));
+            trace("49");
             editor.drag(getSequenceMessageScreenCenteredPosition(THIRD_MESSAGE_SYNC_CALL_ON_LIFELINE_C), getSequenceMessageScreenCenteredPosition(getReturnSyncCall(LIFELINE_C, 0)).x + 10,
                     getSequenceMessageScreenCenteredPosition(getReturnSyncCall(LIFELINE_C, 0)).y + 10);
+            trace("50");
 
             validateMessagesOnEdgeOfExecution(zoom50.getAmount());
+            trace("51");
             validateOrdering(12);
+            trace("52");
 
             // Validate execution vertical position
             assertEquals("The beginning of the execution index 0 on lifeline " + LIFELINE_B + " is not at the expected vertical position", firstExecutionScreenPosition.y,
@@ -375,14 +438,19 @@ public class SyncCallTest extends AbstractDefaultModelSequenceTests {
                     getExecutionScreenPosition(LIFELINE_B, 1).y);
             assertEquals("The end of the execution index 1 on lifeline " + LIFELINE_B + " is not at the expected vertical position", thirdExecutionScreenPosition.y + thirdExecutionDimension.height,
                     getExecutionScreenPosition(LIFELINE_B, 1).y + getExecutionScreenDimension(LIFELINE_B, 1).height);
+            trace("53");
 
             // Validate it is not possible to move up message m3 before m1
             editor.click(getSequenceMessageScreenCenteredPosition(THIRD_MESSAGE_SYNC_CALL_ON_LIFELINE_C));
+            trace("54");
             editor.drag(getSequenceMessageScreenCenteredPosition(THIRD_MESSAGE_SYNC_CALL_ON_LIFELINE_C), getSequenceMessageScreenCenteredPosition(getReturnSyncCall(LIFELINE_B, 0)).x - 10,
                     getSequenceMessageScreenCenteredPosition(getReturnSyncCall(LIFELINE_B, 0)).y - 1);
+            trace("55");
 
             validateMessagesOnEdgeOfExecution(zoom50.getAmount());
+            trace("56");
             validateOrdering(12);
+            trace("57");
 
             // Validate execution vertical position
             assertEquals("The beginning of the execution index 0 on lifeline " + LIFELINE_B + " is not at the expected vertical position", firstExecutionScreenPosition.y,
@@ -398,14 +466,19 @@ public class SyncCallTest extends AbstractDefaultModelSequenceTests {
                     getExecutionScreenPosition(LIFELINE_B, 1).y);
             assertEquals("The end of the execution index 1 on lifeline " + LIFELINE_B + " is not at the expected vertical position", thirdExecutionScreenPosition.y + thirdExecutionDimension.height,
                     getExecutionScreenPosition(LIFELINE_B, 1).y + getExecutionScreenDimension(LIFELINE_B, 1).height);
+            trace("58");
 
             // Validate it is not possible to move up message m1 after m3
             editor.click(getSequenceMessageScreenCenteredPosition(FIRST_MESSAGE_SYNC_CALL));
+            trace("59");
             editor.drag(getSequenceMessageScreenCenteredPosition(FIRST_MESSAGE_SYNC_CALL), getSequenceMessageScreenCenteredPosition(THIRD_MESSAGE_SYNC_CALL_ON_LIFELINE_C).x + 10,
                     getSequenceMessageScreenCenteredPosition(THIRD_MESSAGE_SYNC_CALL_ON_LIFELINE_C).y + 10);
+            trace("60");
 
             validateMessagesOnEdgeOfExecution(zoom50.getAmount());
+            trace("61");
             validateOrdering(12);
+            trace("62");
 
             // Validate execution vertical position
             assertEquals("The beginning of the execution index 0 on lifeline " + LIFELINE_B + " is not at the expected vertical position", firstExecutionScreenPosition.y,
@@ -421,10 +494,11 @@ public class SyncCallTest extends AbstractDefaultModelSequenceTests {
                     getExecutionScreenPosition(LIFELINE_B, 1).y);
             assertEquals("The end of the execution index 1 on lifeline " + LIFELINE_B + " is not at the expected vertical position", thirdExecutionScreenPosition.y + thirdExecutionDimension.height,
                     getExecutionScreenPosition(LIFELINE_B, 1).y + getExecutionScreenDimension(LIFELINE_B, 1).height);
-
+            trace("63");
         } finally {
             // Set zoom to default
             editor.zoom(ZoomLevel.ZOOM_100);
+            trace("64");
         }
     }
 
