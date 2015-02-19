@@ -10,17 +10,8 @@
  *******************************************************************************/
 package org.eclipse.sirius.table.business.internal.metamodel.description.spec;
 
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-
-import org.eclipse.emf.common.util.BasicEList;
 import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.ecore.EObject;
-import org.eclipse.emf.ecore.EStructuralFeature;
-import org.eclipse.emf.ecore.EStructuralFeature.Setting;
-import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.emf.ecore.util.ECrossReferenceAdapter;
+import org.eclipse.sirius.business.internal.metamodel.helper.DerivedInverseReferenceHelper;
 import org.eclipse.sirius.table.metamodel.table.description.impl.TableNavigationDescriptionImpl;
 import org.eclipse.sirius.viewpoint.description.DescriptionPackage;
 import org.eclipse.sirius.viewpoint.description.RepresentationDescription;
@@ -32,52 +23,18 @@ import org.eclipse.sirius.viewpoint.description.RepresentationElementMapping;
  * @author <a href="mailto:maxime.porhel@obeo.fr">Maxime Porhel</a>
  */
 public class TableNavigationDescriptionSpec extends TableNavigationDescriptionImpl {
-
-    /**
-     * 
-     * {@inheritDoc}
-     * 
-     * @see org.eclipse.sirius.viewpoint.description.tool.impl.RepresentationCreationDescriptionImpl#basicGetRepresentationDescription()
-     */
     @Override
     public RepresentationDescription basicGetRepresentationDescription() {
         return getTableDescription();
     }
 
-    /**
-     * {@inheritDoc}
-     * 
-     * @see org.eclipse.sirius.viewpoint.description.tool.impl.RepresentationNavigationDescriptionImpl#getRepresentationDescription()
-     */
     @Override
     public RepresentationDescription getRepresentationDescription() {
         return getTableDescription();
     }
 
-    /**
-     * {@inheritDoc}
-     * 
-     * @see org.eclipse.sirius.viewpoint.description.tool.impl.RepresentationNavigationDescriptionImpl#getMappings()
-     */
     @Override
     public EList<RepresentationElementMapping> getMappings() {
-        Resource resource = this.eResource();
-        if (resource == null) {
-            throw new UnsupportedOperationException();
-        }
-        ECrossReferenceAdapter crossReferencer = ECrossReferenceAdapter.getCrossReferenceAdapter(resource);
-        if (crossReferencer == null) {
-            throw new UnsupportedOperationException();
-        }
-        final List<RepresentationElementMapping> edgeMappings = new LinkedList<RepresentationElementMapping>();
-        final Collection<Setting> settings = crossReferencer.getInverseReferences(this, true);
-        for (final Setting setting : settings) {
-            final EObject eReferencer = setting.getEObject();
-            final EStructuralFeature eFeature = setting.getEStructuralFeature();
-            if (eReferencer instanceof RepresentationElementMapping && eFeature.equals(DescriptionPackage.eINSTANCE.getRepresentationElementMapping_NavigationDescriptions())) {
-                edgeMappings.add((RepresentationElementMapping) eReferencer);
-            }
-        }
-        return new BasicEList<RepresentationElementMapping>(edgeMappings);
+        return DerivedInverseReferenceHelper.getInverseReferences(this, RepresentationElementMapping.class, DescriptionPackage.eINSTANCE.getRepresentationElementMapping_NavigationDescriptions());
     }
 }

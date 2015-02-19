@@ -10,17 +10,8 @@
  *******************************************************************************/
 package org.eclipse.sirius.diagram.business.internal.metamodel.description.tool.spec;
 
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-
-import org.eclipse.emf.common.util.BasicEList;
 import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.ecore.EObject;
-import org.eclipse.emf.ecore.EStructuralFeature;
-import org.eclipse.emf.ecore.EStructuralFeature.Setting;
-import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.emf.ecore.util.ECrossReferenceAdapter;
+import org.eclipse.sirius.business.internal.metamodel.helper.DerivedInverseReferenceHelper;
 import org.eclipse.sirius.diagram.description.DescriptionPackage;
 import org.eclipse.sirius.diagram.description.DiagramElementMapping;
 import org.eclipse.sirius.diagram.description.tool.impl.DeleteElementDescriptionImpl;
@@ -32,32 +23,8 @@ import org.eclipse.sirius.diagram.description.tool.impl.DeleteElementDescription
  * 
  */
 public class DeleteElementDescriptionSpec extends DeleteElementDescriptionImpl {
-
-    /**
-     * {@inheritDoc}
-     * 
-     * @see org.eclipse.sirius.viewpoint.description.tool.impl.DeleteElementDescriptionImpl#getMappings()
-     */
     @Override
     public EList<DiagramElementMapping> getMappings() {
-        Resource r = this.eResource();
-        if (r == null) {
-            throw new UnsupportedOperationException();
-        }
-        ECrossReferenceAdapter crossReferencer = ECrossReferenceAdapter.getCrossReferenceAdapter(r);
-        if (crossReferencer == null) {
-            throw new UnsupportedOperationException();
-        }
-        final List<DiagramElementMapping> diagramElementsMappings = new LinkedList<DiagramElementMapping>();
-        final Collection<Setting> settings = crossReferencer.getInverseReferences(this, true);
-        for (final Setting setting : settings) {
-            final EObject eReferencer = setting.getEObject();
-            final EStructuralFeature eFeature = setting.getEStructuralFeature();
-            if (eReferencer instanceof DiagramElementMapping && eFeature.equals(DescriptionPackage.eINSTANCE.getDiagramElementMapping_DeletionDescription())) {
-                diagramElementsMappings.add((DiagramElementMapping) eReferencer);
-            }
-        }
-        return new BasicEList<DiagramElementMapping>(diagramElementsMappings);
+        return DerivedInverseReferenceHelper.getInverseReferences(this, DiagramElementMapping.class, DescriptionPackage.eINSTANCE.getDiagramElementMapping_DeletionDescription());
     }
-
 }
