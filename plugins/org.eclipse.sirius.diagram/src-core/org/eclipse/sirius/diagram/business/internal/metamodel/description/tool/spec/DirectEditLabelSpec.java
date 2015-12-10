@@ -40,11 +40,7 @@ public class DirectEditLabelSpec extends DirectEditLabelImpl {
      */
     @Override
     public EList<DiagramElementMapping> getMapping() {
-        Resource r = this.eResource();
-        if (r == null) {
-            throw new UnsupportedOperationException();
-        }
-        ECrossReferenceAdapter crossReferencer = ECrossReferenceAdapter.getCrossReferenceAdapter(r);
+        ECrossReferenceAdapter crossReferencer = ECrossReferenceAdapter.getCrossReferenceAdapter(this);
         if (crossReferencer == null) {
             throw new UnsupportedOperationException();
         }
