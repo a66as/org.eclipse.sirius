@@ -10,13 +10,30 @@
  *******************************************************************************/
 package org.eclipse.sirius.diagram.ui.internal.edit.parts;
 
+import java.lang.reflect.Method;
+
+import org.eclipse.core.runtime.Preferences;
+import org.eclipse.draw2d.geometry.Point;
+import org.eclipse.emf.common.command.AbstractCommand;
 import org.eclipse.emf.transaction.TransactionalEditingDomain;
+import org.eclipse.emf.transaction.util.TransactionUtil;
 import org.eclipse.gef.EditPolicy;
+import org.eclipse.gef.Request;
 import org.eclipse.gef.SnapToHelper;
+import org.eclipse.gef.commands.Command;
+import org.eclipse.gef.commands.CompoundCommand;
+import org.eclipse.gef.requests.CreateConnectionRequest;
+import org.eclipse.gef.tools.AbstractTool;
+import org.eclipse.gef.tools.ConnectionCreationTool;
+import org.eclipse.gmf.runtime.diagram.ui.commands.ICommandProxy;
+import org.eclipse.gmf.runtime.diagram.ui.editparts.INodeEditPart;
 import org.eclipse.gmf.runtime.diagram.ui.editpolicies.EditPolicyRoles;
 import org.eclipse.gmf.runtime.notation.Diagram;
+import org.eclipse.gmf.runtime.notation.Node;
 import org.eclipse.gmf.runtime.notation.View;
 import org.eclipse.sirius.diagram.DDiagram;
+import org.eclipse.sirius.diagram.DNode;
+import org.eclipse.sirius.diagram.description.tool.EdgeCreationDescription;
 import org.eclipse.sirius.diagram.ui.edit.api.part.AbstractDDiagramEditPart;
 import org.eclipse.sirius.diagram.ui.graphical.edit.policies.AirXYLayoutEditPolicy;
 import org.eclipse.sirius.diagram.ui.graphical.edit.policies.ContainerCreationEditPolicy;
@@ -30,15 +47,25 @@ import org.eclipse.sirius.diagram.ui.graphical.edit.policies.SiriusContainerDrop
 import org.eclipse.sirius.diagram.ui.graphical.edit.policies.SiriusPropertyHandlerEditPolicy;
 import org.eclipse.sirius.diagram.ui.internal.edit.policies.DDiagramItemSemanticEditPolicy;
 import org.eclipse.sirius.diagram.ui.provider.Messages;
+import org.eclipse.sirius.diagram.ui.tools.api.command.GMFCommandWrapper;
 import org.eclipse.sirius.diagram.ui.tools.api.policy.CompoundEditPolicy;
 import org.eclipse.sirius.diagram.ui.tools.api.requests.RequestConstants;
 import org.eclipse.sirius.diagram.ui.tools.internal.ruler.SiriusSnapToHelperUtil;
 import org.eclipse.sirius.tools.api.command.SiriusCommand;
+import org.eclipse.sirius.viewpoint.DSemanticDecorator;
+import org.eclipse.swt.SWT;
 
 /**
  * @was-generated
  */
 public class DDiagramEditPart extends AbstractDDiagramEditPart {
+    /**
+     * Constant used to store a {@link EdgeCreationDescription} in a
+     * Request.getExtendedData().
+     */
+    protected static final String GMF_EDGE_CREATION_DESCRIPTION = "edge.creation.description"; //$NON-NLS-1$
+
+    private static final String CREATE_MAGIC_RELATIONSHIP_ID = "CreateMagicRelationship"; //$NON-NLS-1$
 
     /**
      * @was-generated
@@ -92,6 +119,85 @@ public class DDiagramEditPart extends AbstractDDiagramEditPart {
         installEditPolicy(EditPolicyRoles.PROPERTY_HANDLER_ROLE, new SiriusPropertyHandlerEditPolicy());
     }
 
+    @Override
+    public Command getCommand(Request request) {
+        if (isMagicConnectorRequest(request)) {
+            INodeEditPart sourceEditPart = (INodeEditPart) ((CreateConnectionRequest) request).getSourceEditPart();
+            final DNodeContainerEditPart sourceNode;
+            if (sourceEditPart instanceof DNodeContainerEditPart) {
+                DNodeContainerEditPart diagramEP = (DNodeContainerEditPart) sourceEditPart;
+                sourceNode = diagramEP.getDiagramNode();
+            } else if (sourceEditPart instanceof DNodeEditPart) {
+                DNodeEditPart dnodeEP = (DNodeEditPart) sourceEditPart;
+                DNode dnode = (DNode) ((Node) dnodeEP.getModel()).getElement();
+                if (dnode.getTarget() instanceof DSemanticDecorator) {
+                    sourceNode = (DiagramNode) dnode.getTarget();
+                } else {
+                    // non-archimate
+                    return null;
+                }
+            } else {
+                // should not happen
+                return null;
+            }
+
+            TransactionalEditingDomain domain = TransactionUtil.getEditingDomain(sourceNode.getModel());
+            final Point point = ((CreateConnectionRequest) request).getLocation();
+
+            CompoundCommand result = new CompoundCommand();
+            org.eclipse.emf.common.command.Command emfCommand = new AbstractCommand() {
+
+                @Override
+                public void redo() {
+                    // not needed
+                }
+
+                @Override
+                public void execute() {
+                    boolean elementsFirst = true;
+                    elementsFirst ^= isModKeyPressed();
+                    new MagicConnectorMenu(DDiagramEditPart.this, sourceNode, point, elementsFirst);
+                }
+
+                @Override
+                public boolean canExecute() {
+                    return true;
+                }
+            };
+            result.add(new ICommandProxy(new GMFCommandWrapper(domain, emfCommand)));
+            return result;
+        }
+        return super.getCommand(request);
+    }
+    private boolean isMagicConnectorRequest(Request request) {
+        return request instanceof CreateConnectionRequest
+                && (((CreateConnectionRequest)request).getSourceEditPart() instanceof DNodeContainerEditPart
+                        || ((CreateConnectionRequest)request).getSourceEditPart() instanceof DNodeEditPart)
+                && request.getExtendedData()
+                        .get(GMF_EDGE_CREATION_DESCRIPTION) instanceof EdgeCreationDescription
+                && ((EdgeCreationDescription)request.getExtendedData().get(GMF_EDGE_CREATION_DESCRIPTION))
+                        .getName().equals(CREATE_MAGIC_RELATIONSHIP_ID);
+    }
+
+    private boolean isModKeyPressed() {
+        boolean res = false;
+        if (getEditDomain().getActiveTool() instanceof ConnectionCreationTool) {
+            ConnectionCreationTool tool = (ConnectionCreationTool)getEditDomain().getActiveTool();
+            // TODO fix when the getCurrentInput will be accessible cf
+            // https://bugs.eclipse.org/bugs/show_bug.cgi?id=494732
+            try {
+                Method method = AbstractTool.class.getDeclaredMethod("getCurrentInput"); //$NON-NLS-1$
+                method.setAccessible(true);
+                Object result = method.invoke(tool);
+                if (result instanceof AbstractTool.Input) {
+                    res = ((AbstractTool.Input)result).isModKeyDown(SWT.MOD1);
+                }
+            } catch (Throwable e) {
+                // fail silently
+            }
+        }
+        return res;
+    }
     @Override
     public void deactivate() {
         deactivateLayoutingMode();
