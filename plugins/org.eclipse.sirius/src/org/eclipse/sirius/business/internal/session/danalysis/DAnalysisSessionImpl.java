@@ -37,6 +37,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.Resource.Diagnostic;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.emf.transaction.NotificationFilter;
+import org.eclipse.emf.transaction.RecordingCommand;
 import org.eclipse.emf.transaction.RunnableWithResult;
 import org.eclipse.emf.transaction.Transaction;
 import org.eclipse.emf.transaction.TransactionalEditingDomain;
@@ -1158,7 +1159,7 @@ public class DAnalysisSessionImpl extends DAnalysisSessionEObjectImpl implements
     // *******************
 
     @Override
-    public void open(IProgressMonitor monitor) {
+    public void open(final IProgressMonitor monitor) {
         try {
             monitor.beginTask(Messages.DAnalysisSessionImpl_openMsg, 33);
             SessionManager.INSTANCE.add(this);
@@ -1172,7 +1173,14 @@ public class DAnalysisSessionImpl extends DAnalysisSessionEObjectImpl implements
             this.representationNameListener = new RepresentationNameListener(this);
             monitor.worked(1);
 
-            tracker.initialize(monitor);
+            RecordingCommand initializeTrackerCommand = new RecordingCommand(transactionalEditingDomain) {
+                
+                @Override
+                protected void doExecute() {
+                    tracker.initialize(monitor);
+                }
+            };
+            transactionalEditingDomain.getCommandStack().execute(initializeTrackerCommand);
             monitor.worked(1);
 
             setSynchronizeStatusofEveryResource();
