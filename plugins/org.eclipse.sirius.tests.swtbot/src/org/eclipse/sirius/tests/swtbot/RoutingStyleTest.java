@@ -20,6 +20,8 @@ import org.eclipse.sirius.tests.swtbot.support.api.condition.CheckSelectedCondit
 import org.eclipse.sirius.tests.swtbot.support.api.editor.SWTBotSiriusDiagramEditor;
 import org.eclipse.sirius.tests.swtbot.support.api.editor.SWTBotSiriusHelper;
 import org.eclipse.sirius.tests.swtbot.support.api.widget.WrappedSWTBotRadio;
+import org.eclipse.swtbot.swt.finder.widgets.SWTBotToolbarButton;
+import org.eclipse.swtbot.swt.finder.widgets.SWTBotToolbarDropDownButton;
 
 /**
  * Test the tree routing style UI
@@ -127,6 +129,8 @@ public class RoutingStyleTest extends AbstractSiriusSwtBotGefTestCase {
         // Select all Connectors ; as there is only one edge, it works.
         editor.clickContextMenu("All Connectors");
         bot.waitUntil(cS);
-        editor.bot().toolbarDropDownButtonWithTooltip(LINE_STYLE).click().menuItem(TREE_STYLE_ROUTING).click();
+        SWTBotToolbarDropDownButton lineStyle = editor.bot().toolbarDropDownButtonWithTooltip(LINE_STYLE);
+        lineStyle.click();
+        lineStyle.menuItem(TREE_STYLE_ROUTING).click();
     }
 }
