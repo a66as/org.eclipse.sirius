@@ -23,6 +23,10 @@ import org.eclipse.emf.ecore.xmi.impl.SAXWrapper;
 import org.eclipse.emf.ecore.xmi.impl.SAXXMIHandler;
 import org.eclipse.emf.ecore.xmi.impl.XMILoadImpl;
 import org.eclipse.sirius.business.internal.migration.RepresentationsFileMigrationService;
+import org.eclipse.sirius.viewpoint.DAnalysis;
+import org.eclipse.sirius.viewpoint.ViewpointPackage;
+import org.xml.sax.Attributes;
+import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 /**
@@ -39,6 +43,8 @@ public class AirdResourceXMILoad extends XMILoadImpl {
 
     private boolean doMigration;
 
+    private boolean firstDanalysisOnly;
+
     /**
      * Create a new {@link AirdResourceXMILoad}, suitable for on the fly
      * migration of .aird files.
@@ -48,11 +54,16 @@ public class AirdResourceXMILoad extends XMILoadImpl {
      *            being loaded.
      * @param helper
      *            the xml helper to use during the load.
+     * @param firstDanalysisOnly
+     *            if <code>true</code>, will finish parsing after seeing the
+     *            first complete DAnalysis element found in the resource. The
+     *            rest of the file will be ignored.
      */
-    public AirdResourceXMILoad(String loadedVersion, XMLHelper helper) {
+    public AirdResourceXMILoad(String loadedVersion, XMLHelper helper, boolean firstDanalysisOnly) {
         super(helper);
         this.loadedVersion = loadedVersion;
         this.doMigration = true;
+        this.firstDanalysisOnly = firstDanalysisOnly;
     }
 
     /**
@@ -61,9 +72,14 @@ public class AirdResourceXMILoad extends XMILoadImpl {
      * 
      * @param helper
      *            the xml helper to use during the load.
+     * @param firstDanalysisOnly
+     *            if <code>true</code>, will finish parsing after seeing the
+     *            first complete DAnalysis element found in the resource. The
+     *            rest of the file will be ignored.
      */
-    public AirdResourceXMILoad(XMLHelper helper) {
+    public AirdResourceXMILoad(XMLHelper helper, boolean firstDanalysisOnly) {
         super(helper);
+        this.firstDanalysisOnly = firstDanalysisOnly;
     }
 
     @Override
@@ -92,6 +108,8 @@ public class AirdResourceXMILoad extends XMILoadImpl {
     class AirdHandler extends SAXXMIHandler {
         private boolean abortOnError;
 
+        private boolean finished;
+
         public AirdHandler(XMLResource xmiResource, XMLHelper helper, Map<?, ?> options) {
             super(xmiResource, helper, options);
 
@@ -101,10 +119,56 @@ public class AirdResourceXMILoad extends XMILoadImpl {
         }
 
         @Override
+        public void startElement(String uri, String localName, String name) {
+            if (!finished) {
+                super.startElement(uri, localName, name);
+            }
+        }
+
+        @Override
+        public void startCDATA() {
+            if (!finished) {
+                super.startCDATA();
+            }
+        }
+
+        @Override
+        public void startElement(String uri, String localName, String name, Attributes attributes) throws SAXException {
+            if (!finished) {
+                super.startElement(uri, localName, name, attributes);
+            }
+        }
+
+        @Override
+        public void startEntity(String name) {
+            if (!finished) {
+                super.startEntity(name);
+            }
+        }
+
+        @Override
+        public void characters(char[] ch, int start, int length) {
+            if (!finished) {
+                super.characters(ch, start, length);
+            }
+        }
+
+        @Override
         public void endElement(String uri, String localName, String name) {
-            super.endElement(uri, localName, name);
-            if (doMigration) {
-                RepresentationsFileMigrationService.getInstance().postXMLEndElement(objects.peek(), attribs, uri, localName, name, loadedVersion);
+            if (!finished && !(uri.equals("http://www.omg.org/XMI") && "XMI".equals(localName))) { //$NON-NLS-1$ //$NON-NLS-2$
+                super.endElement(uri, localName, name);
+                if (doMigration) {
+                    RepresentationsFileMigrationService.getInstance().postXMLEndElement(objects.peek(), attribs, uri, localName, name, loadedVersion);
+                }
+                if (AirdResourceXMILoad.this.firstDanalysisOnly && ViewpointPackage.eNS_URI.equals(uri) && ViewpointPackage.Literals.DANALYSIS.getName().equals(localName)) {
+                    finished = true;
+                    this.deferredExtent.stream().findFirst().ifPresent((o) -> {
+                        if (o instanceof DAnalysis) {
+                            DAnalysis analysis = (DAnalysis) o;
+                            // TODO Send the partially loaded DAnalysis to a listener registered
+                        }
+                    });
+                }
             }
         }
 

@@ -15,17 +15,20 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.core.commands.operations.IOperationHistory;
 import org.eclipse.core.commands.operations.IUndoContext;
 import org.eclipse.core.commands.operations.IUndoableOperation;
 import org.eclipse.core.commands.operations.OperationHistoryFactory;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.SubMonitor;
@@ -74,11 +77,13 @@ import org.eclipse.gmf.runtime.notation.datatype.RelativeBendpoint;
 import org.eclipse.jface.dialogs.ProgressMonitorDialog;
 import org.eclipse.jface.operation.IRunnableWithProgress;
 import org.eclipse.jface.window.Window;
+import org.eclipse.sirius.business.api.resource.ResourceDescriptor;
 import org.eclipse.sirius.business.api.session.Session;
 import org.eclipse.sirius.business.api.session.SessionManager;
 import org.eclipse.sirius.business.internal.movida.ViewpointSelection;
 import org.eclipse.sirius.business.internal.movida.registry.ViewpointRegistry;
 import org.eclipse.sirius.business.internal.movida.registry.ViewpointRegistryListener;
+import org.eclipse.sirius.business.internal.resource.AirDResourceImpl;
 import org.eclipse.sirius.business.internal.session.danalysis.DAnalysisSessionImpl;
 import org.eclipse.sirius.diagram.AbsoluteBoundsFilter;
 import org.eclipse.sirius.diagram.DDiagramElement;
@@ -117,9 +122,14 @@ import org.eclipse.sirius.tests.sample.component.util.PayloadMarkerAdapter;
 import org.eclipse.sirius.tests.sample.component.util.PayloadMarkerAdapter.FeatureAccess;
 import org.eclipse.sirius.ui.business.api.viewpoint.ViewpointSelectionDialog;
 import org.eclipse.sirius.ui.debug.ResourceSetTopologyAnalyzer.Reference;
+import org.eclipse.sirius.viewpoint.DAnalysis;
+import org.eclipse.sirius.viewpoint.DRepresentationDescriptor;
 import org.eclipse.sirius.viewpoint.DRepresentationElement;
 import org.eclipse.sirius.viewpoint.DSemanticDecorator;
+import org.eclipse.sirius.viewpoint.DView;
+import org.eclipse.sirius.viewpoint.ViewpointPackage;
 import org.eclipse.sirius.viewpoint.description.DescriptionPackage;
+import org.eclipse.sirius.viewpoint.description.RepresentationDescription;
 import org.eclipse.sirius.viewpoint.description.Viewpoint;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.FileDialog;
@@ -414,6 +424,37 @@ public class SiriusDebugView extends AbstractDebugView {
         addShowAdaptersAction();
         addShowSessionStructureAction();
         // addShowCrossReferencerMap();
+        addSessionPreloadAction();
+    }
+
+    private void addSessionPreloadAction() {
+        addAction("Pre-load session", () -> { 
+            if (selection instanceof IFile) {
+                IFile f = (IFile) selection;
+                if (f.getFileExtension().equals("aird")) {
+                    ResourceSet rs = new ResourceSetImpl();
+                    rs.getLoadOptions().put(AirDResourceImpl.OPTION_LOAD_DANALYSIS_ONLY, Boolean.TRUE);
+                    long start = System.nanoTime();
+                    Resource r = rs.getResource(URI.createPlatformResourceURI(f.getFullPath().toString(), true), true);
+                    long elapsed = System.nanoTime() - start;
+                    DAnalysis analysis = (DAnalysis) r.getContents().get(0);
+                    StringBuilder s = new StringBuilder();
+                    s.append(MessageFormat.format("Session metadata for {0} (loaded in {1}ms):\n", f.getFullPath().toString(), TimeUnit.NANOSECONDS.toMillis(elapsed)));
+                    for (DView view : analysis.getSelectedViews()) {
+                        s.append("From viewpoint " + view.getViewpoint().getName() + ":\n");
+                        for (DRepresentationDescriptor repDesc : view.getOwnedRepresentationDescriptors()) {
+                            InternalEObject target = (InternalEObject) repDesc.eGet(ViewpointPackage.Literals.DREPRESENTATION_DESCRIPTOR__TARGET, false);
+                            s.append(" - " + repDesc.getName() + " (" + repDesc.getDescription().getName() + ") on " + target.eProxyURI() + "\n");
+                        }
+                    }
+                    s.append("\nSemantic models:\n");
+                    for (ResourceDescriptor resDesc : analysis.getSemanticResources()) {
+                        s.append(" - " + resDesc.getResourceURI() + "\n");
+                    }
+                    setText(s.toString());
+                }
+            }
+        });
     }
 
     private void addShowSessionStructureAction() {

@@ -50,6 +50,14 @@ public class AirDResourceImpl extends XMIResourceImpl implements DResource, Aird
     public static final String OPTION_ABORT_ON_ERROR = "ABORT_ON_ERROR"; //$NON-NLS-1$
 
     /**
+     * Use this option to only load the first DAnalysis element of the resource,
+     * and skip other roots. The resulting model will be incomplete and not
+     * suitable to use for a real session, but should provide access to most of
+     * the interesting "session metadata" for a much lower cost.
+     */
+    public static final String OPTION_LOAD_DANALYSIS_ONLY = "LOAD_DANALYSIS_ONLY"; //$NON-NLS-1$
+
+    /**
      * The number of current load in progress. Usefull for determine if the
      * current load is the first one or is a load triggered by a resolve (for
      * fragmented files for examples).
@@ -190,6 +198,7 @@ public class AirDResourceImpl extends XMIResourceImpl implements DResource, Aird
 
     @Override
     protected XMLLoad createXMLLoad(Map<?, ?> options) {
+        Object danalysisOnly = options.get(OPTION_LOAD_DANALYSIS_ONLY);
         if (options != null && options.containsKey(AbstractSiriusMigrationService.OPTION_RESOURCE_MIGRATION_LOADEDVERSION)) {
             // LoadedVersion can be null for old aird files.
             String loadedVersion = null;
@@ -197,10 +206,10 @@ public class AirDResourceImpl extends XMIResourceImpl implements DResource, Aird
             if (mapVersion instanceof String) {
                 loadedVersion = (String) mapVersion;
             }
-            return new AirdResourceXMILoad(loadedVersion, createXMLHelper());
+            return new AirdResourceXMILoad(loadedVersion, createXMLHelper(), danalysisOnly == Boolean.TRUE);
         }
 
-        return new AirdResourceXMILoad(createXMLHelper());
+        return new AirdResourceXMILoad(createXMLHelper(), danalysisOnly == Boolean.TRUE);
     }
 
     /**
