@@ -13,6 +13,9 @@ package org.eclipse.sirius.business.internal.resource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.xmi.UnresolvedReferenceException;
@@ -38,12 +41,13 @@ import org.xml.sax.helpers.DefaultHandler;
  */
 @SuppressWarnings("deprecation")
 public class AirdResourceXMILoad extends XMILoadImpl {
+    private static final Executor EXECUTOR = Executors.newSingleThreadExecutor();
 
     private String loadedVersion;
 
     private boolean doMigration;
 
-    private boolean firstDanalysisOnly;
+    private Consumer<DAnalysis> listener;
 
     /**
      * Create a new {@link AirdResourceXMILoad}, suitable for on the fly
@@ -54,16 +58,16 @@ public class AirdResourceXMILoad extends XMILoadImpl {
      *            being loaded.
      * @param helper
      *            the xml helper to use during the load.
-     * @param firstDanalysisOnly
-     *            if <code>true</code>, will finish parsing after seeing the
-     *            first complete DAnalysis element found in the resource. The
-     *            rest of the file will be ignored.
+     * @param listener
+     *            if non-<code>null</code>, will be sent the {@link DAnalysis}
+     *            at the root of the aird resource as soon as it is available,
+     *            before the rest of the resource is parsed.
      */
-    public AirdResourceXMILoad(String loadedVersion, XMLHelper helper, boolean firstDanalysisOnly) {
+    public AirdResourceXMILoad(String loadedVersion, XMLHelper helper, Consumer<DAnalysis> listener) {
         super(helper);
         this.loadedVersion = loadedVersion;
         this.doMigration = true;
-        this.firstDanalysisOnly = firstDanalysisOnly;
+        this.listener = listener;
     }
 
     /**
@@ -72,14 +76,14 @@ public class AirdResourceXMILoad extends XMILoadImpl {
      * 
      * @param helper
      *            the xml helper to use during the load.
-     * @param firstDanalysisOnly
-     *            if <code>true</code>, will finish parsing after seeing the
-     *            first complete DAnalysis element found in the resource. The
-     *            rest of the file will be ignored.
+     * @param listener
+     *            if non-<code>null</code>, will be sent the {@link DAnalysis}
+     *            at the root of the aird resource as soon as it is available,
+     *            before the rest of the resource is parsed.
      */
-    public AirdResourceXMILoad(XMLHelper helper, boolean firstDanalysisOnly) {
+    public AirdResourceXMILoad(XMLHelper helper, Consumer<DAnalysis> listener) {
         super(helper);
-        this.firstDanalysisOnly = firstDanalysisOnly;
+        this.listener = listener;
     }
 
     @Override
@@ -160,12 +164,12 @@ public class AirdResourceXMILoad extends XMILoadImpl {
                 if (doMigration) {
                     RepresentationsFileMigrationService.getInstance().postXMLEndElement(objects.peek(), attribs, uri, localName, name, loadedVersion);
                 }
-                if (AirdResourceXMILoad.this.firstDanalysisOnly && ViewpointPackage.eNS_URI.equals(uri) && ViewpointPackage.Literals.DANALYSIS.getName().equals(localName)) {
-                    finished = true;
+                if (listener != null && ViewpointPackage.eNS_URI.equals(uri) && ViewpointPackage.Literals.DANALYSIS.getName().equals(localName)) {
+                    //finished = true;
                     this.deferredExtent.stream().findFirst().ifPresent((o) -> {
                         if (o instanceof DAnalysis) {
-                            DAnalysis analysis = (DAnalysis) o;
-                            // TODO Send the partially loaded DAnalysis to a listener registered
+                            listener.accept((DAnalysis) o);
+                            //EXECUTOR.execute(() -> listener.accept((DAnalysis) o));
                         }
                     });
                 }

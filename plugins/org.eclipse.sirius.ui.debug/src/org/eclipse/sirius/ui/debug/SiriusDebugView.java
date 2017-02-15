@@ -23,6 +23,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import org.eclipse.core.commands.operations.IOperationHistory;
 import org.eclipse.core.commands.operations.IUndoContext;
@@ -428,33 +431,48 @@ public class SiriusDebugView extends AbstractDebugView {
     }
 
     private void addSessionPreloadAction() {
-        addAction("Pre-load session", () -> { 
+        addAction("Pre-load session", () -> {
             if (selection instanceof IFile) {
                 IFile f = (IFile) selection;
                 if (f.getFileExtension().equals("aird")) {
                     ResourceSet rs = new ResourceSetImpl();
-                    rs.getLoadOptions().put(AirDResourceImpl.OPTION_LOAD_DANALYSIS_ONLY, Boolean.TRUE);
+
+                    AtomicLong metadataAvailable = new AtomicLong();
+                    AtomicReference<String> metadata = new AtomicReference<>();
+                    Consumer<DAnalysis> c = (a) -> {
+                        metadata.set(sessionMetadata(a));
+                        metadataAvailable.set(System.nanoTime());
+                    };
+                    rs.getLoadOptions().put(AirDResourceImpl.OPTION_EARLY_DANALYSIS_CONSUMER, c);
                     long start = System.nanoTime();
                     Resource r = rs.getResource(URI.createPlatformResourceURI(f.getFullPath().toString(), true), true);
-                    long elapsed = System.nanoTime() - start;
-                    DAnalysis analysis = (DAnalysis) r.getContents().get(0);
+                    long resourceFinishedLoading = System.nanoTime();
+
                     StringBuilder s = new StringBuilder();
-                    s.append(MessageFormat.format("Session metadata for {0} (loaded in {1}ms):\n", f.getFullPath().toString(), TimeUnit.NANOSECONDS.toMillis(elapsed)));
-                    for (DView view : analysis.getSelectedViews()) {
-                        s.append("From viewpoint " + view.getViewpoint().getName() + ":\n");
-                        for (DRepresentationDescriptor repDesc : view.getOwnedRepresentationDescriptors()) {
-                            InternalEObject target = (InternalEObject) repDesc.eGet(ViewpointPackage.Literals.DREPRESENTATION_DESCRIPTOR__TARGET, false);
-                            s.append(" - " + repDesc.getName() + " (" + repDesc.getDescription().getName() + ") on " + target.eProxyURI() + "\n");
-                        }
-                    }
-                    s.append("\nSemantic models:\n");
-                    for (ResourceDescriptor resDesc : analysis.getSemanticResources()) {
-                        s.append(" - " + resDesc.getResourceURI() + "\n");
-                    }
+                    s.append(MessageFormat.format("Session metadata for {0}:\n", f.getFullPath().toString()));
+                    s.append(MessageFormat.format("Metadata obtained in {0}ms\nResource fully loaded in {1}ms\n", TimeUnit.NANOSECONDS.toMillis(metadataAvailable.get() - start),
+                            TimeUnit.NANOSECONDS.toMillis(resourceFinishedLoading - start)));
+                    s.append(metadata.get());
                     setText(s.toString());
                 }
             }
         });
+    }
+
+    private String sessionMetadata(DAnalysis analysis) {
+        StringBuilder s = new StringBuilder();
+        for (DView view : analysis.getSelectedViews()) {
+            s.append("From viewpoint " + ((InternalEObject) view.eGet(ViewpointPackage.Literals.DVIEW__VIEWPOINT, false)).eProxyURI() + ":\n");
+            for (DRepresentationDescriptor repDesc : view.getOwnedRepresentationDescriptors()) {
+                InternalEObject target = (InternalEObject) repDesc.eGet(ViewpointPackage.Literals.DREPRESENTATION_DESCRIPTOR__TARGET, false);
+                s.append(" - " + repDesc.getName() + " (" + repDesc.getDescription().getName() + ") on " + target.eProxyURI() + "\n");
+            }
+        }
+        s.append("\nSemantic models:\n");
+        for (ResourceDescriptor resDesc : analysis.getSemanticResources()) {
+            s.append(" - " + resDesc.getResourceURI() + "\n");
+        }
+        return s.toString();
     }
 
     private void addShowSessionStructureAction() {

@@ -12,6 +12,7 @@ package org.eclipse.sirius.business.internal.resource;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.emf.common.util.URI;
@@ -33,6 +34,7 @@ import org.eclipse.sirius.business.internal.resource.parser.RepresentationsFileX
 import org.eclipse.sirius.common.tools.DslCommonPlugin;
 import org.eclipse.sirius.ext.base.Option;
 import org.eclipse.sirius.tools.api.profiler.SiriusTasksKey;
+import org.eclipse.sirius.viewpoint.DAnalysis;
 import org.osgi.framework.Version;
 
 /**
@@ -50,12 +52,15 @@ public class AirDResourceImpl extends XMIResourceImpl implements DResource, Aird
     public static final String OPTION_ABORT_ON_ERROR = "ABORT_ON_ERROR"; //$NON-NLS-1$
 
     /**
-     * Use this option to only load the first DAnalysis element of the resource,
-     * and skip other roots. The resulting model will be incomplete and not
-     * suitable to use for a real session, but should provide access to most of
-     * the interesting "session metadata" for a much lower cost.
+     * Set this option to a {@link Consumer<DAnalsysis>} to receive the
+     * {@link DAnalysis} instance as soon as it is parsed, even if the whole
+     * aird file is not fully loaded yet. The DAnalysis will be incomplete (with
+     * unresolved references) and not suitable to use for a real session, but if
+     * used with care should provide access to most of the interesting
+     * "session metadata" without waiting for the whole resources to load/the
+     * session to be fully open.
      */
-    public static final String OPTION_LOAD_DANALYSIS_ONLY = "LOAD_DANALYSIS_ONLY"; //$NON-NLS-1$
+    public static final String OPTION_EARLY_DANALYSIS_CONSUMER = "OPTION_EARLY_DANALYSIS_CONSUMER"; //$NON-NLS-1$
 
     /**
      * The number of current load in progress. Usefull for determine if the
@@ -196,9 +201,14 @@ public class AirDResourceImpl extends XMIResourceImpl implements DResource, Aird
         return new RepresentationsFileXMIHelper(this);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     protected XMLLoad createXMLLoad(Map<?, ?> options) {
-        Object danalysisOnly = options.get(OPTION_LOAD_DANALYSIS_ONLY);
+        Consumer<DAnalysis> danalysisConsumer = (analysis) -> { return; }; 
+        Object opt = options.get(OPTION_EARLY_DANALYSIS_CONSUMER);
+        if (opt instanceof Consumer<?>) {
+            danalysisConsumer = (Consumer<DAnalysis>) opt;
+        }
         if (options != null && options.containsKey(AbstractSiriusMigrationService.OPTION_RESOURCE_MIGRATION_LOADEDVERSION)) {
             // LoadedVersion can be null for old aird files.
             String loadedVersion = null;
@@ -206,10 +216,10 @@ public class AirDResourceImpl extends XMIResourceImpl implements DResource, Aird
             if (mapVersion instanceof String) {
                 loadedVersion = (String) mapVersion;
             }
-            return new AirdResourceXMILoad(loadedVersion, createXMLHelper(), danalysisOnly == Boolean.TRUE);
+            return new AirdResourceXMILoad(loadedVersion, createXMLHelper(), danalysisConsumer);
         }
 
-        return new AirdResourceXMILoad(createXMLHelper(), danalysisOnly == Boolean.TRUE);
+        return new AirdResourceXMILoad(createXMLHelper(), danalysisConsumer);
     }
 
     /**
