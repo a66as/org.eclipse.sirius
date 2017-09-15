@@ -471,12 +471,30 @@ public class SiriusDebugView extends AbstractDebugView {
         // addSiriusSelectionAction();
         // addExtractExpressionsAction();
         // addLoadResourceWithProgressAction();
-        addShowPayloadAccessLogAction();
-        addClearPayloadAccessLogAction();
+        // addShowPayloadAccessLogAction();
+        // addClearPayloadAccessLogAction();
         addShowResourceSetTopologyAction();
         addShowAdaptersAction();
         addShowSessionStructureAction();
+        addReloadPluginVSMAction();
         // addShowCrossReferencerMap();
+    }
+
+    private void addReloadPluginVSMAction() {
+        addAction("Reload VSMs from Host", () -> {
+            forceReloadVSMsFromPlugins();
+        });
+    }
+
+    private void forceReloadVSMsFromPlugins() {
+        org.eclipse.sirius.business.api.componentization.ViewpointRegistry reg = org.eclipse.sirius.business.api.componentization.ViewpointRegistry.getInstance();
+        reg.getViewpoints().stream().filter(vp -> reg.isFromPlugin(vp)).map(vp -> vp.eResource()).distinct().filter(r -> r != null).forEach(res -> {
+            URI uri = res.getURI();
+            if (uri != null && uri.isPlatformPlugin()) {
+                String path = uri.toPlatformString(true);
+                reg.registerFromPlugin(path);
+            }
+        });
     }
 
     private void addShowSessionStructureAction() {

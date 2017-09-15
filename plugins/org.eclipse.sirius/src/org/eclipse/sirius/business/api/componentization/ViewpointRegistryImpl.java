@@ -649,6 +649,9 @@ public class ViewpointRegistryImpl extends ViewpointRegistry {
     /* CHECKSTYLE:OFF -> this method may throw runtime exception */
     private EObject load(final URI fileURI, final ResourceSet set) throws IOException, WrappedException, RuntimeException {
         final Resource loaded = set.getResource(fileURI, true);
+        if (loaded.isLoaded()) {
+            loaded.unload();
+        }
         loaded.load(Collections.EMPTY_MAP);
         return loaded.getContents().get(0);
         /* CHECKSTYLE:ON */
