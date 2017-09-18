@@ -262,6 +262,13 @@ public class ViewpointRegistry implements IResourceChangeListener {
     public void disposeFromPlugin(Viewpoint viewpoint) {
         throw new UnsupportedOperationException();
     }
+    
+    /**
+     * .
+     */
+    public void reloadAllFromPlugins() {
+        throw new UnsupportedOperationException();
+    }
 
     /**
      * Add a filter on the registry.

@@ -15,6 +15,7 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -45,6 +46,7 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.sirius.business.api.dialect.DialectManager;
 import org.eclipse.sirius.business.api.helper.SiriusUtil;
 import org.eclipse.sirius.business.api.query.RepresentationDescriptionQuery;
+import org.eclipse.sirius.business.api.query.ViewpointQuery;
 import org.eclipse.sirius.business.api.session.Session;
 import org.eclipse.sirius.business.api.session.SessionManager;
 import org.eclipse.sirius.common.tools.DslCommonPlugin;
@@ -77,7 +79,7 @@ import com.google.common.collect.Maps;
 public class ViewpointRegistryImpl extends ViewpointRegistry {
     private ResourceSet resourceSet;
 
-    private Set<Viewpoint> viewpointsFromPlugin;
+    private Map<URI, Viewpoint> viewpointsFromPlugin;
 
     private Set<Viewpoint> viewpointsFromWorkspace;
 
@@ -169,7 +171,7 @@ public class ViewpointRegistryImpl extends ViewpointRegistry {
      */
     @Override
     public void init(final int size) {
-        this.viewpointsFromPlugin = new HashSet<Viewpoint>(size);
+        this.viewpointsFromPlugin = new HashMap<>();
         this.viewpointsFromWorkspace = new HashSet<Viewpoint>(size);
         this.resourceSet = new ResourceSetImpl();
 
@@ -320,7 +322,12 @@ public class ViewpointRegistryImpl extends ViewpointRegistry {
             Option<ViewpointFileCollector> collector = getCollectorFromURI(fileURI);
             if (collector.some() && collector.get().isValid(root)) {
                 for (final Viewpoint viewpoint : collector.get().collect(root)) {
-                    viewpointsFromPlugin.add(viewpoint);
+                    Option<URI> uri = new ViewpointQuery(viewpoint).getViewpointURI();
+                    if (uri.some()) {
+                        viewpointsFromPlugin.put(uri.get(), viewpoint);
+                    } else {
+                        viewpointsFromPlugin.put(EcoreUtil.getURI(viewpoint), viewpoint);
+                    }
                     mapToViewpointProtocol(viewpoint);
                     addedViewpoints.add(viewpoint);
                 }
@@ -342,6 +349,24 @@ public class ViewpointRegistryImpl extends ViewpointRegistry {
         }
         invalidateCache();
         return addedViewpoints;
+    }
+    
+    @Override
+    public void reloadAllFromPlugins() {
+        boolean[] touched = { false };
+        this.getViewpoints().stream().filter(vp -> this.isFromPlugin(vp)).map(vp -> vp.eResource()).distinct().filter(r -> r != null).forEach(res -> {
+            URI uri = res.getURI();
+            if (uri != null && uri.isPlatformPlugin()) {
+                String path = uri.toPlatformString(true);
+                this.registerFromPlugin(path);
+                touched[0] = true;
+            }
+        });
+        if (touched[0] && newListeners != null) {
+            for (final ViewpointRegistryListener2 listener : newListeners) {
+                listener.modelerDesciptionFilesLoaded();
+            }
+        }
     }
 
     private Option<ViewpointFileCollector> getCollectorFromURI(URI fileURI) {
@@ -404,7 +429,7 @@ public class ViewpointRegistryImpl extends ViewpointRegistry {
             final String pluginName = vpResource.getURI().segment(1);
 
             if (vpName != null && pluginName != null) {
-                Iterable<Viewpoint> sameNameAndPluginViewpoints = Iterables.filter(viewpointsFromPlugin, new Predicate<Viewpoint>() {
+                Iterable<Viewpoint> sameNameAndPluginViewpoints = Iterables.filter(viewpointsFromPlugin.values(), new Predicate<Viewpoint>() {
 
                     @Override
                     public boolean apply(final Viewpoint input) {
@@ -419,7 +444,7 @@ public class ViewpointRegistryImpl extends ViewpointRegistry {
             }
         }
 
-        for (final Viewpoint viewpointFromPlugin : viewpointsFromPlugin) {
+        for (final Viewpoint viewpointFromPlugin : viewpointsFromPlugin.values()) {
             if (viewpointFromPlugin.eResource().equals(vpResource)) {
                 return;
             }
@@ -443,7 +468,7 @@ public class ViewpointRegistryImpl extends ViewpointRegistry {
     public Set<Viewpoint> getViewpoints() {
         final Set<Viewpoint> all = new HashSet<Viewpoint>(this.viewpointsFromPlugin.size() + this.viewpointsFromWorkspace.size());
         all.addAll(this.viewpointsFromWorkspace);
-        all.addAll(this.viewpointsFromPlugin);
+        all.addAll(this.viewpointsFromPlugin.values());
 
         if (filters != null) {
             final Set<Viewpoint> toRemove = new LinkedHashSet<Viewpoint>();
@@ -459,7 +484,7 @@ public class ViewpointRegistryImpl extends ViewpointRegistry {
                 /*
                  * Filter viewpoints from plug-in
                  */
-                for (final Viewpoint viewpoint : this.viewpointsFromPlugin) {
+                for (final Viewpoint viewpoint : this.viewpointsFromPlugin.values()) {
                     if (filter.filter(viewpoint)) {
                         toRemove.add(viewpoint);
                     }
@@ -499,7 +524,7 @@ public class ViewpointRegistryImpl extends ViewpointRegistry {
     @Override
     public boolean isFromPlugin(final Viewpoint viewpoint) {
         if (viewpointsFromPlugin != null) {
-            return viewpointsFromPlugin.contains(viewpoint);
+            return viewpointsFromPlugin.containsValue(viewpoint);
         }
         return false;
     }
@@ -883,7 +908,7 @@ public class ViewpointRegistryImpl extends ViewpointRegistry {
         this.viewpointsFromWorkspace.remove(viewpoint);
         URI viewpointUri = ViewpointProtocolParser.buildViewpointUri(EcoreUtil.getURI(viewpoint));
 
-        for (Viewpoint vp : this.viewpointsFromPlugin) {
+        for (Viewpoint vp : this.viewpointsFromPlugin.values()) {
             if (StringUtil.equals(vp.getName(), viewpoint.getName())) {
                 URI vpURI = ViewpointProtocolParser.buildViewpointUri(EcoreUtil.getURI(vp));
                 if (vpURI != null && viewpointUri != null && StringUtil.equals(vpURI.toString(), viewpointUri.toString())) {
