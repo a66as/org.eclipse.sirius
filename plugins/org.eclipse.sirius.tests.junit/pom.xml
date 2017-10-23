@@ -80,9 +80,10 @@
           <includes>
             <include>${tests.junit.include}</include>
           </includes>
+          <useJDK>BREE</useJDK>
           <useUIHarness>true</useUIHarness>
           <useUIThread>true</useUIThread>
-          <argLine>${tests.vmargs}</argLine>
+          <argLine>${tests.vmargs} --add-modules=ALL-SYSTEM</argLine>
           <testFailureIgnore>${tests.ignoreFailures}</testFailureIgnore>
           <forkedProcessTimeoutInSeconds>${tests.timeout}</forkedProcessTimeoutInSeconds>
         </configuration>

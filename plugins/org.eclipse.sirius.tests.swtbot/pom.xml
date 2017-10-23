@@ -83,7 +83,8 @@
           </includes>
           <useUIHarness>true</useUIHarness>
           <useUIThread>false</useUIThread>
-          <argLine>${tests.vmargs}</argLine>
+          <useJDK>BREE</useJDK>
+          <argLine>${tests.vmargs} --add-modules=ALL-SYSTEM</argLine>
           <product>org.eclipse.sdk.ide</product>
           <application>org.eclipse.ui.ide.workbench</application>
           <testFailureIgnore>${tests.ignoreFailures}</testFailureIgnore>

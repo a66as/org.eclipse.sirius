@@ -35,6 +35,10 @@
         <artifactId>tycho-surefire-plugin</artifactId>
         <version>${tycho-version}</version>
         <configuration>
+          <useJDK>BREE</useJDK>
+          <argLine>${tests.vmargs} --add-modules=ALL-SYSTEM</argLine>
+          <testFailureIgnore>${tests.ignoreFailures}</testFailureIgnore>
+          <forkedProcessTimeoutInSeconds>${tests.timeout}</forkedProcessTimeoutInSeconds>
           <testClass>org.eclipse.sirius.tests.ui.properties.internal.AllTests</testClass>
         </configuration>
       </plugin>
