@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2007, 2014 THALES GLOBAL SERVICES and others.
+ * Copyright (c) 2007-2018 THALES GLOBAL SERVICES and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -21,7 +21,6 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.util.ECrossReferenceAdapter;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.sirius.business.api.query.IdentifiedElementQuery;
-import org.eclipse.sirius.business.internal.movida.Movida;
 import org.eclipse.sirius.viewpoint.description.Component;
 import org.eclipse.sirius.viewpoint.description.RepresentationDescription;
 import org.eclipse.sirius.viewpoint.description.Viewpoint;
@@ -130,11 +129,7 @@ public class ViewpointRegistry implements IResourceChangeListener {
     private static class ViewpointRegistryHolder {
         private static ViewpointRegistry instance;
         static {
-            if (Movida.isEnabled()) {
-                instance = new org.eclipse.sirius.business.internal.movida.registry.ViewpointRegistry();
-            } else {
-                instance = new ViewpointRegistryImpl();
-            }
+            instance = new ViewpointRegistryImpl();
             instance.init(10);
         }
     }

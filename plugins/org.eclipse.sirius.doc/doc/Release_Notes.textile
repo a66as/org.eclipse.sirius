@@ -18,6 +18,17 @@ h4. Changes in @org.eclipse.sirius.common@
 
 * <span class="label label-danger">Removed</span> The interface @org.eclipse.sirius.common.tools.api.interpreter.IExpressionProposal@ and its only implementation @DefaultExpressionProposal@ (in the same package) have been removed. They were not used anywhere, expression completion API is actually defined in package @org.eclipse.sirius.common.tools.api.contentassist@ which has its own types.  
 
+h4. Changes in @org.eclipse.sirius@
+
+* <span class="label label-danger">Removed</span> The whole @contribution@ metamodel, which lived in package @org.eclipse.sirius.description.contribution@, has been removed. It corresponded to an experimental feature which has been abandonned long ago.
+* <span class="label label-danger">Removed</span> The @org.eclipse.sirius.viewpointSpecificationModel@ extension point has been removed. It was part of the same experimental feauture and not actually used in practice.
+* <span class="label label-danger">Removed</span> In @org.eclipse.sirius.business.api.session.danalysis.DAnalysisSessionHelper@, the method @getViewpointSelection()@ has been removed. It used an internal type as argument which has also been removed.
+* <span class="label label-danger">Removed</span> In @org.eclipse.sirius.business.api.helper.SiriusResourceHelper@, the method @getCorrespondingViewpoint(Session session, URI, boolean)@ has been removed. It was not used anywhere, the real one is @getCorrespondingViewpoint(Session, Viewpoint)@ in the same class.
+* <span class="label label-danger">Removed</span> In @org.eclipse.sirius.business.api.dialect.DialectServices@ (and all its implementations), the method @refreshEffectiveRepresentationDescription(DRepresentation, IProgressMonitor)@ has been removed. It corresponded to an experimental feature which has been abandonned long ago. 
+
+h4. Changes in @org.eclipse.sirius.ui@
+
+* <span class="label label-danger">Removed</span> The class @org.eclipse.sirius.ui.business.api.viewpoint.ViewpointSelectionDialog@ has been removed.
 
 h4. Migrations
 
